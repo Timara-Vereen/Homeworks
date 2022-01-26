@@ -1,0 +1,253 @@
+---
+title: "Homework 2"
+author: "Timara Vereen"
+date: "1/18/2022"
+output: html_document
+---
+
+
+R intermediate
+Dan McGlinn
+January 15, 2016
+Premature optimization is the root of all evil -- Donald Knuth
+
+The humble for loop is often considered distasteful by seasoned programmers because it is inefficient; however, the for loop is one of the most useful and generalizable programming structures in R. If you can learn how to construct and understand for loops then you can code almost any iterative task. Once your loop works you can always work to optimize your code and increase its efficiency.
+
+Before attempting these exercises you should review the lesson R intermediate in which loops were covered.
+
+Examine the following for loop, and then complete the exercises
+
+```{r}
+data(iris)
+head(iris)
+##   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+## 1          5.1         3.5          1.4         0.2  setosa
+## 2          4.9         3.0          1.4         0.2  setosa
+## 3          4.7         3.2          1.3         0.2  setosa
+## 4          4.6         3.1          1.5         0.2  setosa
+## 5          5.0         3.6          1.4         0.2  setosa
+## 6          5.4         3.9          1.7         0.4  setosa
+sp_ids = unique(iris$Species)
+# get every unique species id
+
+# initialize a matrix called output with no data. It should have the same
+# number of rows as there are unique species. The number of columns should
+# be one less than the number of columns in the iris dataframe.
+output = matrix(0, nrow=length(sp_ids), ncol=ncol(iris)-1)
+rownames(output) = sp_ids
+colnames(output) = names(iris[ , -ncol(iris)])
+
+# for each species id...
+for(i in seq_along(sp_ids)) {
+  #create a subset of iris (subset is rows and select refers to the columns)
+    iris_sp = subset(iris, subset=Species == sp_ids[i], select=-Species)
+    for(j in 1:(ncol(iris_sp))) {
+        x = 0
+        y = 0
+        if (nrow(iris_sp) > 0) {
+            for(k in 1:nrow(iris_sp)) {
+                x = x + iris_sp[k, j]
+                y = y + 1
+            }
+            output[i, j] = x / y 
+        }
+    }
+}
+i=1
+i=2
+
+i= 1
+  # setosa
+i= 2
+  # output= mean; every time run loop y adds one and x is sum of something (so its a ratio)
+  # sp_ids 
+  #iris_sp 50 obs. of 4 variables
+
+output
+```
+
+i=2
+
+i=3
+
+```{r}
+iris
+```
+##            Sepal.Length Sepal.Width Petal.Length Petal.Width
+## setosa            5.006       3.428        1.462       0.246
+## versicolor        5.936       2.770        4.260       1.326
+## virginica         6.588       2.974        5.552       2.026
+
+
+
+```{r}
+for(i in seq_along(sp_ids)) {
+  #iris is the entire data set
+  # naming subset of iris as iris_sp
+  #species correlation sp_ids[i]; select data for that selected species
+    iris_sp = subset(iris, subset=Species == sp_ids[i], select=-Species)
+    iris_sp
+    for(j in 1:(ncol(iris_sp))) {
+        x = 0
+        y = 0
+        #for the for loop, j is the number of columns in iris_sp
+        #x and y are set to zero to define boundaries of data set
+        
+        if (nrow(iris_sp) > 0) {
+          #if number of rows in iris_sp is greater than zero (which it is...)
+            for(k in 1:nrow(iris_sp)) {
+              #loop through this for loop where k is the number of rows in iris_sp
+                x = x + iris_sp[k, j]
+                y = y + 1
+            }
+            output[i, j] = x / y 
+            #output of [i, j] where i is species id and j where for each column (speal length, width, etc)... it will output the mean for those specific species id
+        }
+    }
+}
+```
+
+
+in?
+
+```{r}
+#
+seq_along(sp_ids)
+```
+
+
+Excercises
+Iris loops
+***Describe the values stored in the object output. In other words what did the loops create?
+The loop created a ratio between x and y (x/y); both values would start at zero before the loop runs; x illustrates the total sum of data in a given column (j) depending on what run the loop is on (1 or 2 or 3... nth loop); y illustrates the count of which loop we are on when running the data hence the y+1 for designating y.
+
+
+# random notes: the object output displays the mean sepal length and width as well as the petal length and width for each of the different species
+
+# unique returns a vector, data frame or array like x but with duplicate elements/rows removed.
+# sp_ids = species ids
+
+
+***Describe using pseudo-code how output was calculated, for example,
+
+#*** j= # of columns within iris_sp; have to set x and y to zero so you have boundaries and have a "clean slate"; k= # of rows in iris_sp, you have [k, j] -- starting your first loop... j will be at 1 as you start your first loop (e.g. septal length), k will increase b/c you are going through those rows in that column.. you'll go through all of that data and the loop will complete and go back up to the top, but instead of it being 1, it will move on to be 2 -- j:2 because you're going to the 2nd column in the data and run through that data in that specific column and develop and output and the loop will go on to the 3 round and so on.
+
+
+
+Loop from 1 to length of species identities
+   Take a subset of iris data 
+   Loop from 1 to number of columns of the iris data
+      If ... occurs then do ...  
+***The variables in the loop were named so as to be vague. How can the objects output, x, and y be renamed such that it is clearer what is occurring in the loop.
+# x= trait sum ; y= number of samples [output] x/y= trait mean
+
+It is possible to accomplish the same task using fewer lines of code? ***Please suggest one other way to calculate output that decreases the number of loops by 1.
+#use the mean function in relation to the vector for the data
+vector = mean(c(1,2,3))
+
+```{r}
+for(i in seq_along(sp_ids)) {
+  #iris is the entire data set
+  # naming subset of iris as iris_sp
+  #species correlation sp_ids[i]; select data for that selected species
+    iris_sp = subset(iris, subset=Species == sp_ids[i], select=-Species)
+    iris_sp
+    for(j in 1:(ncol(iris_sp))) {
+      output[i, j] <- mean(iris_sp[ , j])
+    }
+}
+output
+```
+
+> vector
+[1] 2
+Sum of a sequence
+You have a vector x with the numbers 1:10. Write a for loop that will produce a vector y that contains the sum of x up to that index of x. So for example the elements of x are 1, 2, 3, and so on and the elements of y would be 1, 3, 6, and so on.
+
+```{r}
+y= 0
+x= 1:10
+for(i in 1:10) {
+  y[i] = sum(x[1:i])
+  if (y[i] <= 10) {
+    print(y)
+  }
+}
+```
+
+
+***Modify your for loop so that if the sum is greater than 10 the value of y is set to NA
+```{r}
+y= 0
+x= 1:10
+for(i in 1:10) {
+  y[i] = sum(x[1:i])
+  if (y[i] <= 10) {
+    print(y)
+  }
+}
+```
+    
+      
+
+
+```{r}
+for(i in seq_along(sp_ids)) {
+    iris_sp = subset(iris, subset=Species == sp_ids[i], select=-Species)
+    iris_sp
+    for(j in 1:(ncol(iris_sp))) {
+        x = 0
+        y = 0
+        if (nrow(iris_sp) > 0) {
+            for(k in 1:nrow(iris_sp)) {
+                x = x + iris_sp[k, j]
+                if (k<=10){
+                  y=y+1
+                }
+                else{
+                  y=NA
+                }
+            }
+            output[i, j] = x / y 
+        }
+    }
+}
+```
+
+**
+Place your for loop into a function that accepts as its argument any vector of arbitrary length and it will return y.
+
+```{r}
+length <- function(x){
+  y=0
+  for (i in x) {
+    y=y+1
+  }
+  return(y)
+}
+vec <- c(3, 4, 5, 7, 1, 8)
+
+length(vec)
+ 
+for(i in seq_along(sp_ids)) {
+    iris_sp = subset(iris, subset=Species == sp_ids[i], select=-Species)+-**--
+    iris_sp
+    for(j in 1:(ncol(iris_sp))) {
+        x = 0
+        y = 0
+        if (nrow(iris_sp) > 0) {
+            for(k in 1:nrow(iris_sp)) {
+                x = x + iris_sp[k, j]
+                if (k<=10){
+                  y=y+1
+                }
+                else{
+                  y=NA
+                }
+            }
+            output[i, j] = x / y 
+        }
+    }
+}
+```
+
