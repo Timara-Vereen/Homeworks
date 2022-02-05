@@ -1,0 +1,257 @@
+---
+title: "Lesson 1-1.27.22"
+author: "Timara Vereen"
+date: "1/27/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+install.packages("gridExtra")     
+install.packages("scatterplot3d") 
+install.packages("MASS")
+```
+```{r}
+library(ggplot2)
+library(gridExtra)
+library(scatterplot3d)
+library(MASS)
+```
+
+
+Univariate Assignment
+Read in tree data
+
+# read in directly from website: 
+
+trees <- read.csv('https://raw.githubusercontent.com/dmcglinn/quant_methods/gh-pages/data/treedata_subset.csv')
+
+# or download and import locally
+trees <- read.csv('./data/treedata_subset.csv')
+
+```{r}
+trees <- read.csv('https://raw.githubusercontent.com/dmcglinn/quant_methods/gh-pages/data/treedata_subset.csv')
+```
+
+Examine this dataset and see how the data is structured, see function str
+
+str(trees)
+
+# we wish to model species cover across all sampled plots
+# create site x sp matrix for two species 
+
+```{r}
+sp_cov = with(trees, tapply(cover, list(plotID, spcode), 
+function(x) round(mean(x))))
+sp_cov = ifelse(is.na(sp_cov), 0, sp_cov)
+sp_cov = data.frame(plotID = row.names(sp_cov), sp_cov)
+# create environmental matrix
+cols_to_select = c('elev', 'tci', 'streamdist', 'disturb', 'beers')
+env = aggregate(trees[ , cols_to_select], by = list(trees$plotID), 
+                function(x) x[1])
+names(env)[1] = 'plotID'
+# merge species and enviornmental matrices
+site_dat = merge(sp_cov, env, by='plotID')
+# subset species of interest
+abies = site_dat[ , c('ABIEFRA', cols_to_select)]
+acer  = site_dat[ , c('ACERRUB', cols_to_select)]
+names(abies)[1] = 'cover'
+names(acer)[1] = 'cover'
+```
+
+```{r}
+plot(abies)
+```
+```{r}
+plot(acer)
+```
+```{r}
+install.packages("car")
+library(car)
+```
+
+The contents of the metadata file (./data/tree_metadata.txt) is provided here:
+
+
+The dataset includes tree abundances from a subset of a vegetation database of Great Smoky Mountains National Park (TN, NC).
+
+plotID: unique code for each spatial unit (note some sampled more than once)
+date: when species occurrence recorded
+plotsize: size of quadrat in m2
+spcode: unique 7-letter code for each species
+species: species name
+cover: local abundance measured as estimated horizontal cover (ie, relative area of shadow if sun is directly above) classes 1-10 are: 1=trace, 2=0-1%, 3=1-2%, 4=2-5%, 5=5-10%, 6=10-25%, 7=25-50%, 8=50-75%, 9=75-95%, 10=95-100%
+utme: plot UTM Easting, zone 17 (NAD27 Datum)
+utmn: plot UTM Northing, zone 17 (NAD27 Datum)
+elev: elevation in meters from a digital elevation model (10 m res)
+tci: topographic convergence index, or site “water potential”; measured as the upslope contributing area divided by the tangent of the slope angle (Beven and Kirkby 1979)
+streamdist: distance of plot from the nearest permanent stream (meters)
+disturb: plot disturbance history (from a Park report); CORPLOG=corporate logging; SETTLE=concentrated settlement, VIRGIN=”high in virgin attributes”, LT-SEL=light or selective logging
+beers: transformed slope aspect (‘heat load index’); 0 is SW (hottest), 2 is NE (coolest)
+
+
+Above shows a map of the regional and local location of the elevational transects included in the dataset (from Fridley 2009).
+
+1. Carry out an exploratory analysis using the tree dataset. Metadata for the tree study can be found here. Specifically, I would like you to develop and compare models for species cover for a habitat generalist Acer rubrum (Red maple) and a habitat specialist Abies fraseri (Frasier fir). Because this dataset includes both continuous and discrete explanatory variables use the function Anova in the packages car as such
+
+```{r}
+abies
+```
+```{r}
+acer
+```
+
+```{r}
+main_acer_mod = lm(cover ~ elev + tci + streamdist + disturb + beers, data = acer)
+main_acer_mod
+```
+```{r}
+Anova(main_acer_mod, type=3)
+```
+```{r}
+main_abies_mod = lm(cover ~ elev + tci + streamdist + disturb + beers, data = acer)
+main_abies_mod
+```
+```{r}
+Anova(main_abies_mod, type=3)
+```
+
+```{r}
+summary(main_acer_mod)
+```
+
+```{r}
+summary(main_abies_mod)
+```
+# The p values in the summary are rounding up values, so if you wanted a more indepth analysis, the ANOVA provides more sig figs
+
+
+
+This will estimate partial effect sizes, variance explained, and p-values for each explanatory variable included in the model.
+
+Compare the p-values you observe using the function Anova to those generated using summary.
+
+For each species address the following additional questions:
+
+how well does the exploratory model appear to explain cover?
+
+#acer: based on the anova given that we observe cover, elevation, tci, and beers are have an affect on the tree cover relative to this species
+#abies: based on the anova given that we observe cover, elevation, streamdist, and disturbance have an affect on the tree over relative to this species
+
+which explanatory variables are the most important?
+#Acer: elv, tci, and beers
+#Abies: elv, streamdist, and disturbance
+do model diagnostics indicate any problems with violations of OLS assumptions?
+#Yes...the data is discrete but the model requires continuous data and the data isn't normally distributed as well
+
+
+```{r}
+par(mfrow=c(3,3))
+plot(main_acer_mod)
+```
+```{r}
+par(mfrow=c(3,3))
+plot(main_abies_mod)
+```
+
+```{r checking model}
+par(mfrow = c(3, 3))
+plot(main_abies_mod)
+plot(cover ~ elev, data = abies)
+plot(cover ~ tci, data = abies)
+plot(cover ~ streamdist, data = abies)
+plot(cover ~ beers, data = abies)
+```
+
+are you able to explain variance in one species better than another, why might this be the case?
+
+#it's better to explain variance with generalized model than specialist model because with a glm, it's more bi-modal distributed and can see this distribution of data while the specialist model 
+Prior to addressing the above questions you will want to restructure and subset the data using the following R code:
+
+# we wish to model species cover across all sampled plots
+# create site x sp matrix for two species 
+sp_cov = with(trees, tapply(cover, list(plotID, spcode), 
+                           function(x) round(mean(x))))
+sp_cov = ifelse(is.na(sp_cov), 0, sp_cov)
+sp_cov = data.frame(plotID = row.names(sp_cov), sp_cov)
+# create environmental matrix
+cols_to_select = c('elev', 'tci', 'streamdist', 'disturb', 'beers')
+env = aggregate(trees[ , cols_to_select], by = list(trees$plotID), 
+                function(x) x[1])
+names(env)[1] = 'plotID'
+# merge species and enviornmental matrices
+site_dat = merge(sp_cov, env, by='plotID')
+# subset species of interest
+abies = site_dat[ , c('ABIEFRA', cols_to_select)]
+acer  = site_dat[ , c('ACERRUB', cols_to_select)]
+names(abies)[1] = 'cover'
+names(acer)[1] = 'cover'
+
+2\. You may have noticed that the variable cover is defined as 
+positive integers between 1 and 10. and is therefore better treated
+as a discrete rather than continuous variable. 
+Re-examine your solutions to the question above but from the
+perspective of a General Linear Model (GLM) with a Poisson error term
+(rather than a Gaussian one as in OLS). 
+The Poisson distribution generates integers 0 to positive infinity so this may provide a good first approximation. 
+Your new model calls will look as follows:
+
+acer_poi = glm(cover ~ tci + elev + ... , data = my_data, 
+           family='poisson')
+For assessing the degree of variation explained you can use a pseudo-R-squared statistic (note this is just one of many possible)
+
+```{r}
+pseudo_r2 = function(glm_mod) {
+                1 -  glm_mod$deviance / glm_mod$null.deviance
+}
+```
+
+```{r}
+pseudo_r2 = function(glm_mod) {
+  1- glm_mod$deviance / glm_mod$null.deviance
+}
+pseudo_r2(acer_poi)
+pseudo_r2(abies_poi)
+```
+# the R-squared values for the acer_poi and abies_poi are both positive, yet are different in size displaying that the acer_poi had a weaker correlation in comparison to the abies_poi which displayed a higher correlation
+
+ Compare your qualatitive assessment of which variables were most important in each model. Does it appear that changing the error distribution changed the results much? In what ways?
+ #in relation to the p-values The poisson test is more restrictive and sensitive when compared to the general linear model
+```{r}
+acer_poi = glm(cover ~ elev + tci + streamdist + disturb + beers, data = acer, 
+           family='poisson')
+acer_poi
+#main_aCER_mod = lm(cover ~ elev + tci + streamdist + disturb + beers, data = acer)
+```
+```{r}
+abies_poi = glm(cover ~ elev + tci + streamdist + disturb + beers, data = abies, 
+           family='poisson')
+abies_poi
+#main_aCER_mod = lm(cover ~ elev + tci + streamdist + disturb + beers, data = acer)
+```
+
+3. Provide a plain English summary (i.e., no statistics) of what you have found and what conclusions we can take away from your analysis?
+#From our analysis, we can tell when we look at error distributions, we may receive different p-values relative to our levels of the study. Given the poisson test, our p-values were more sensitive in comparison to the glm creating more significance for the data.
+
+
+```{r}
+trees <- read.csv('https://raw.githubusercontent.com/dmcglinn/quant_methods/gh-pages/data/treedata_subset.csv')
+```
+
+
+
+
