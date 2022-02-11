@@ -1,0 +1,107 @@
+---
+title: "Homework 4"
+author: "Timara Vereen"
+date: "2/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+multivariate models
+For this assignment will be analyzing data on the Vegetation and Environment in Dutch Dune Meadows.
+
+To import the data and read the metadata run the following:
+
+library(vegan)
+data(dune)
+data(dune.env)
+?dune
+```{r}
+install.packages("vegan") 
+install.packages("dummies") 
+```
+```{r}
+library(vegan)
+data(dune)
+data(dune.env)
+dune
+```
+
+1. Conduct an indirect ordination on the dune plant community. Specifically, visually examine a NMDS plot using the bray-curtis distance metric. Below is some code to help you develop a potential plot that emphasizes the role of the environmental variable “Moisture”. Describe how you interpret the graphic. What is the goal of creating such a plot? Does this analysis suggest any interesting findings with respect to the dune vegetation?
+
+
+```{r}
+dune_mds <- metaMDS(dune)
+ plot(dune_mds, type='n')
+ text(dune_mds, 'sp', cex=.5)
+ # generate vector of colors 
+ color_vect = rev(terrain.colors(6))[-1]
+ points(dune_mds, 'sites', pch=19, 
+        col=color_vect[dune.env$Moisture])
+ legend('topright', paste("Moisture =", 1:5, sep=''), 
+        col=color_vect, pch=19)
+ #As we observed from the graph that the green dot species were to the right of the zero on the x-axis while if you observe the pink dots they are to the left of the zero on the x-axis. There is some spread of species relative to moisture in relation to the y-axis. This displays that there is a factor in moisture between these species due to the distribution between species. We can see that some species are find in areas with different mositure levels.
+```
+
+
+
+```{r}
+cca_dune = cca(dune ~ Moisture , data=dune.env)
+cca_dune = cca(X = dune, Y = dune.env$Moisture)
+RsquareAdj(cca_dune, 100)
+```
+``` {r}
+plot(cca(X = dune, Y = dune.env$Moisture))
+```
+
+``` {r}
+anova(cca(X = dune, Y = dune.env$Moisture))
+#Mositure is very significant in terms of the species distribution in the data
+```
+```{r}
+
+cca_dune = cca(X = dune, Y = dune.env$Moisture, dune.env$Management,dune.env$Use, dune.env$Manure, dune.env$A1)
+RsquareAdj(cca_dune, 100)
+```
+```{r}
+cca_Management = cca(X = dune, Y = dune.env$Management)
+RsquareAdj(cca_Management, 100)
+
+cca_Use = cca(X = dune, Y = dune.env$Use)
+RsquareAdj(cca_Use, 100)
+
+cca_Manure = cca(X = dune, Y = dune.env$Manure)
+RsquareAdj(cca_Manure, 100)
+
+cca_A1 = cca(X = dune, Y = dune.env$A1)
+RsquareAdj(cca_A1, 100)
+# Management, Manure, aND Moisture have highest r-squared values
+```
+2. Carry out a direct ordination using CCA in order to test any potential hypotheses that you developed after examining the MDS plot. Specifically, carry out a test of the entire model (i.e., including all constrained axes) and also carry out tests at the scale of individual explanatory variables you included in your model if you included more than one variable. Plot your results.
+
+```{r}
+plot(cca_dune)
+#Using the CCA analysis, we can hypothesize that species(dots) to the the right and closer together mean that they are more alike.. so we can see that the light and dark greeen dots are to the right of the x-axis and closer together (except for one outlier) displaying that these species tend to be in areas of higher mositure while pink and orange dots that were closer together displaying that these species tend to be in areas of lower moisture and the yellow dots are somewhere in between... Given this information we can hypothesize that we would find similar species in depending on areas/levels of moisture
+```
+```{r}
+anova(cca(X = dune, Y = dune.env$A1))
+anova(cca(X = dune, Y = dune.env$Management))
+anova(cca(X = dune, Y = dune.env$Use))
+anova(cca(X = dune, Y = dune.env$Manure))
+#Manture, moisture, and A1 are all significant
+```
+```{r}
+anova(cca(X = dune, Y = dune.env$Moisture, dune.env$Management, dune.env$A1)) 
+plot(cca(X = dune, Y = dune.env$Moisture, dune.env$Management, dune.env$A1))
+```
+```{r}
+cca_MAM = cca(X = dune, Y = dune.env$Moisture, dune.env$Management, dune.env$A1)
+RsquareAdj(cca_MAM, 100)
+```
+
+3. Do your two analyses agree with one another or complement one another or do these two analyses seem to be suggesting different take home messages? Which analysis do you find to be more useful?
+
+# Yes, my analyses do compliment each other as moisture sigificantly effects the specimen in the dune data in the mds plot and when an cca and anova testing was carried out in question 2, they showed more specific data values that were also significant relative to this data. From these tests, we can see that the anova seems to be more useful as it is more specific with the data providing more insignht on the (non) significance on these variables in a set of data. As scientist we could determine if something is signifcant.
