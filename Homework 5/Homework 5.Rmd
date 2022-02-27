@@ -1,0 +1,199 @@
+---
+title: "Homework 5"
+author: "Timara Vereen"
+date: "2/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Spatial Modeling Assignment
+
+```{r}
+library(vegan)
+data(BCI)
+```
+## UTM Coordinates (in metres)
+```{r}
+BCI_xy = data.frame(x = rep(seq(625754, 626654, by=100), each=5), 
+                    y = rep(seq(1011569,  1011969, by=100), len=50))
+```
+
+```{r}
+plot(BCI_xy)
+```
+```{r}
+sr <- rowSums(BCI > 0)
+hist(sr)
+```
+```{r}
+abu <- colSums(BCI)
+quantile(abu)
+plot(density(abu))
+quantile(log10(abu))
+which(abu > 25 & abu < 27)
+plot(density(log10(abu)))
+```
+
+```{r}
+quantile(log10(abu))
+which(abu > 25 & abu < 27)
+which(abu > 10^1.93 & abu < 10^1.95)
+
+rare_sp <- BCI[ , 65]
+comm_sp <- BCI[ , 58]
+
+plot(BCI_xy, cex = rare_sp / max(rare_sp))
+plot(BCI_xy, cex = comm_sp / max(comm_sp))
+
+geod <- dist(BCI_xy)
+rared <- dist(rare_sp)
+commd <- dist(comm_sp)
+
+par(mfrow= c(1,2))
+plot(geod, rared, main = "rare species")
+lines(lowess(geod, rared), lwd =2, col= "red")
+plot(geod, commd, main = "common species")
+lines(lowess(geod, commd), lwd =2, col= "red")
+
+
+
+```
+
+
+?mantel
+```{r}
+commd_mantel <- mantel(geod, commd)
+commd_mantel
+```
+```{r}
+rared_mantel <- mantel(geod, rared)
+rared_mantel
+```
+
+
+1) Examine if there is evidence of spatial dependence in a rare and a common species in the BCI tree dataset
+# based on the graphs, there seems to be no spatial depence relative to the rare species, however, there is a spatial dependence within the common species as it displays a somewhat linear model/line and after running the mantel test- there was a significance of 0.002 for the common species and a p-value od 0.414 for the rare species.
+
+
+
+2) Build two generalized linear models to predict the abundance of the species Drypetes standleyi using the abundance of other tree species in the study site. Specifically examine the following species as predictor variables:
+
+```{r}
+sp_ids = c("Cordia.lasiocalyx", "Hirtella.triandra",
+           "Picramnia.latifolia", "Quassia.amara",
+           "Tabernaemontana.arborea", "Trattinnickia.aspera", 
+           "Xylopia.macrantha")
+
+
+```
+Note renaming the species ids to something a little easier to work with like “sp_a”, “sp_b” will make model construction a little less cumbersome
+
+Model 1: only include a single species as a predictor variable
+
+
+```{r}
+sp_a <- BCI$Cordia.lasiocalyx
+sp_b <- BCI$Hirtella.triandra
+sp_c <- BCI$Picramnia.latifolia
+sp_d <- BCI$Quassia.amara
+sp_e <- BCI$Tabernaemontana.arborea
+sp_f <- BCI$Trattinnickia.aspera
+sp_g <- BCI$Xylopia.macrantha
+
+sp_dry <- BCI$Drypetes.standleyi
+
+```
+
+```{r}
+library(nlme)
+sp_dry_lm = gls(sp_dry ~ sp_a, data= BCI_xy)
+
+plot(Variogram(sp_dry_lm, form= ~ x + y))
+
+```
+Model 2: include all of the species as predictor variables
+```{r}
+ALL_sp <- sp_a + sp_b + sp_c + sp_e + sp_d + sp_f + sp_g
+
+
+
+```
+
+```{r}
+library(nlme)
+sp_dry_lm = gls(sp_dry ~ ALL_sp, data= BCI_xy)
+
+plot(Variogram(sp_dry_lm, form= ~ x + y))
+
+```
+
+With both models examine the spatial dependence of the residuals using the function Variogram. Model the spatial dependence in the residuals using one of the error structures available.
+
+
+
+```{r}
+max_abu <- max(abu) / 2
+res = residuals(sp_dry_lm)
+plot(dist(BCI_xy[, c('x', 'y')]), dist(res))
+lines(lowess(dist(BCI_xy[, c('x', 'y')]), dist(res)), col='red', lwd=2)
+abline(v = max_abu, col = "red", lwd=3, lty=2)
+
+```
+
+```{r}
+
+plot(Variogram(sp_dry_lm, maxDist = max_abu))
+```
+```{r}
+sr_exp = update(sp_dry_lm, corr=corExp(form=~x + y))
+# examine fit of error model to the raw model residuals
+# note this function defaults to displaying pearson standardized residuals
+# resType='p' or resType='pearson'
+plot(Variogram(sr_exp, maxDist = max_abu))
+# exponential model does not fit data
+```
+```{r}
+# that doesn't look so good because clearly the model does not fit the error 
+# very well, it appears that there is a nugget (i.e., non-zero y-intercept)
+# Let's examine the normalized residuals in which the residuals are 
+# devided by the estimate of the variance-covariance matrix. If the model
+# fits well these residuals should be normally distributed.
+plot(Variogram(sr_exp, resType='normalized', maxDist = max_abu))
+# normalized exponential model matches a lot better for the data
+```
+
+```{r}
+# we see a little bit of a trend in the residuals but not too bad
+# actually which is a bit surprising given the output of the raw residuals
+
+# let's look at the same model but with a nugget
+sr_exp_nug = update(sr_exp, corr=corExp(form=~x + y, nugget=T))
+plot(Variogram(sr_exp_nug, maxDist = max_abu))
+#Nugget was so small that it didn't show a significant impact to do anything
+```
+```{r}
+anova(sp_dry_lm, sr_exp, test=F)
+summary(sp_dry_lm)
+summary(sr_exp)
+#summary of sr_exp is better because BIC value is lower compared to the value for sp_dry_lm
+```
+
+
+
+Did including the spatial error term have a large impact on the coefficients of the model?
+```{r}
+#yes, because when we observed the p-values for the two tests, the p-values for the sr_exp were much lower and significant when compared to the the values for the model for sp_dry_lm
+```
+Did including the spatial error terms significantly improve model fit (use function anova to carry out model comparison)?
+```{r}
+#yes, the spatial error did significantly improve the model fit after it was normalized. The exponential error model displayed that it was a better fit for the data when compared to the other models. When the nugget was included in the model, it presented an error illustrating that the nugget was so small that it displayed nor significant influence on the data in the model so it was discarded and not used.
+```
+Explain why you did or did not observe a difference in the influence of adding the spatial error term between the two models.
+```{r}
+#We observed a difference in the influence of adding the spatial error term between the two models because after normalizing the data with the exponential model as it displaced that some of the variables in that data do have spatial difference when compared to other variables (some variable are independent)
+```
